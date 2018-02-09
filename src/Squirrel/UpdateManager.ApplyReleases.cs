@@ -380,7 +380,7 @@ namespace Squirrel
                 if (pathKeyArgIndex != -1 && incomingArgs.Length > pathKeyArgIndex + 1)
                 {
                     var installerPath = incomingArgs[pathKeyArgIndex + 1];
-                    args += String.Format(" --squirrel-installer-path {0}", installerPath);
+                    args += String.Format(" --squirrel-installer-path \"{0}\"", installerPath);
                 }
                 this.Log().Info("Incoming args to UpdateManager process: {0}", String.Join(",", incomingArgs));
                 this.Log().Info("Running app with args: {0}", args);
