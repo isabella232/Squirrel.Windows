@@ -40,6 +40,79 @@ wchar_t* FindOwnExecutableName()
 	return ret;
 }
 
+// Credit to https://stackoverflow.com/a/35717/3193009
+LONG GetStringRegKey(HKEY hKey, const std::wstring &strValueName, std::wstring &strValue)
+{
+    WCHAR szBuffer[512];
+    DWORD dwBufferSize = sizeof(szBuffer);
+    ULONG nError;
+    nError = RegQueryValueExW(hKey, strValueName.c_str(), 0, NULL, (LPBYTE)szBuffer, &dwBufferSize);
+    if (ERROR_SUCCESS == nError)
+    {
+        strValue = szBuffer;
+    }
+    return nError;
+}
+
+// Credit to https://stackoverflow.com/a/6218957/3193009
+BOOL FileExists(LPCTSTR szPath)
+{
+  DWORD dwAttrib = GetFileAttributes(szPath);
+
+  return (dwAttrib != INVALID_FILE_ATTRIBUTES &&
+         !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+
+std::wstring GetBraveCorePath(HKEY hKey, LPCTSTR lpSubKey)
+{
+	HKEY hBraveKey;
+	std::wstring fullPath;
+	if (ERROR_SUCCESS == RegOpenKeyExW(hKey,
+		lpSubKey, 0, KEY_READ, &hBraveKey))
+	{
+		if (ERROR_SUCCESS == GetStringRegKey(hBraveKey, L"path", fullPath))
+		{
+			size_t path_index = fullPath.find(L"Update\\BraveUpdate.exe");
+			if (path_index != std::string::npos)
+			{
+				fullPath = fullPath.substr(0, path_index).append(L"Brave-Browser\\Application");
+				std::wstring exePath(fullPath + L"\\brave.exe");
+				if (FileExists(exePath.c_str()))
+				{
+					return fullPath;
+				}
+			}
+		}
+		RegCloseKey(hBraveKey);
+	}
+
+	return std::wstring(L"");
+}
+
+std::wstring FindBraveCoreInstall()
+{
+	std::wstring fullPath;
+
+	// 1) Check for user-specific install
+	// ex: `C:\Users\bsclifton\AppData\Local\BraveSoftware\Brave-Browser\Application\brave.exe`
+	fullPath.assign(GetBraveCorePath(HKEY_CURRENT_USER, L"Software\\BraveSoftware\\Update"));
+	if (fullPath.length() > 0) {
+		return fullPath;
+	}
+
+	// 2) Check for multi-user install (install would prompt w/ UAC)
+	// 64-bit; ex: `C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe`
+	fullPath.assign(GetBraveCorePath(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\BraveSoftware\\Update"));
+	if (fullPath.length() > 0) {
+		return fullPath;
+	}
+
+	// 32-bit; ex: `C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe`
+	fullPath.assign(GetBraveCorePath(HKEY_LOCAL_MACHINE, L"SOFTWARE\\BraveSoftware\\Update"));
+
+	return fullPath;
+}
+
 std::wstring FindLatestAppDir() 
 {
 	std::wstring ourDir;
@@ -90,11 +163,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_ LPWSTR    lpCmdLine,
                      _In_ int       nCmdShow)
 {
-	std::wstring appName;
-	appName.assign(FindOwnExecutableName());
-
-	std::wstring workingDir(FindLatestAppDir());
-	std::wstring fullPath(workingDir + L"\\" + appName);
+	std::wstring fullPath;
+	std::wstring workingDir;
+	// Brave Software specific logic
+	std::wstring braveCore(FindBraveCoreInstall());
+	if (braveCore.length() > 0) {
+		// Logic specifically for launching detected brave-core
+		workingDir.assign(braveCore);
+		fullPath = workingDir + L"\\brave.exe";
+	} else {
+		// Original stub installer logic
+		std::wstring appName;
+		appName.assign(FindOwnExecutableName());
+		workingDir.assign(FindLatestAppDir());
+		fullPath = workingDir + L"\\" + appName;
+	}
 
 	STARTUPINFO si = { 0 };
 	PROCESS_INFORMATION pi = { 0 };
