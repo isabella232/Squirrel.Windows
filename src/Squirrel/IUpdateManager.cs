@@ -20,7 +20,11 @@ namespace Squirrel
         /// <summary>
         /// A shortcut in the application folder, useful for portable applications.
         /// </summary>
-        AppRoot = 1 << 3
+        AppRoot = 1 << 3,
+        /// <summary>
+        /// specific for adding a "Brave (old)" shortcut
+        /// </summary>
+        DuplicateDesktop = 1 << 4,
     }
 
     public interface IUpdateManager : IDisposable, IEnableLogger
