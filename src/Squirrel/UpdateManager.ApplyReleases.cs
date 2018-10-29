@@ -701,6 +701,9 @@ namespace Squirrel
                 var dir = default(string);
 
                 switch (location) {
+                case ShortcutLocation.DuplicateDesktop:
+                    title += " (old)";
+                    goto case ShortcutLocation.Desktop;
                 case ShortcutLocation.Desktop:
                     dir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
                     break;

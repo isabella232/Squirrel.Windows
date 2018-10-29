@@ -165,9 +165,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
 	std::wstring fullPath;
 	std::wstring workingDir;
+	bool launchLegacy = false;
+
+	// Flag to skip brave-core detection logic
+	std::wstring cmdLineArgs(lpCmdLine);
+	size_t arg_index = cmdLineArgs.find(L"--launch-muon");
+	if (arg_index != std::string::npos)
+	{
+		launchLegacy = true;
+	}
+
 	// Brave Software specific logic
 	std::wstring braveCore(FindBraveCoreInstall());
-	if (braveCore.length() > 0) {
+	if (!launchLegacy && braveCore.length() > 0) {
 		// Logic specifically for launching detected brave-core
 		workingDir.assign(braveCore);
 		fullPath = workingDir + L"\\brave.exe";
